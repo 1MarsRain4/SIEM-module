@@ -1,9 +1,9 @@
 import re
 import time
 import smtplib
-from email.mime.text import MIMEText
-from collections import defaultdict
-from datetime import datetime, timedelta
+from email.mime.text import MIMEText # 用于构建邮件内容
+from collections import defaultdict # 用于存储登录失败的时间戳列表
+from datetime import datetime, timedelta # 用于处理时间窗口
 
 # 配置参数
 LOG_FILE = '/var/log/auth.log'  # 替换为实际日志路径（需读权限）
@@ -30,7 +30,7 @@ class LoginTracker: # 追踪登录失败的类
             now = datetime.now() # 当前时间
             self.failures[ip].append(now) # 记录失败时间
             # 清理过期记录
-            self.failures[ip] = [t for t in self.failures[ip] if now - t < TIME_WINDOW]
+            self.failures[ip] = [t for t in self.failures[ip] if now - t < TIME_WINDOW] # 保留时间窗口内的记录
             # 检查阈值
             if len(self.failures[ip]) >= ALERT_THRESHOLD:
                 self.send_alert(ip, user, len(self.failures[ip]))
@@ -41,36 +41,36 @@ class LoginTracker: # 追踪登录失败的类
             user, ip = success_match.groups()
             print(f"Successful login: User {user} from {ip}")
 
-    def send_alert(self, ip, user, count):
-        msg = MIMEText(f"Abnormal login detected: {count} failed attempts for user {user} from IP {ip}")
+    def send_alert(self, ip, user, count): # 发送告警邮件
+        msg = MIMEText(f"Abnormal login detected: {count} failed attempts for user {user} from IP {ip}") # 邮件内容
         msg['Subject'] = 'Security Alert: Abnormal Login'
-        msg['From'] = SENDER_EMAIL
-        msg['To'] = RECIPIENT_EMAIL
+        msg['From'] = SENDER_EMAIL # 邮件发送者
+        msg['To'] = RECIPIENT_EMAIL # 邮件接收者
 
-        try:
-            server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
-            server.starttls()
-            server.login(SENDER_EMAIL, SENDER_PASSWORD)
+        try: # 连接 SMTP 服务器并发送邮件
+            server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT) # 连接 SMTP 服务器
+            server.starttls() # 启用 TLS
+            server.login(SENDER_EMAIL, SENDER_PASSWORD) # 登录 SMTP 服务器
             server.sendmail(SENDER_EMAIL, RECIPIENT_EMAIL, msg.as_string())
             server.quit()
-            print("Alert sent successfully")
+            print("Alert sent successfully") 
         except Exception as e:
             print(f"Failed to send alert: {e}")
 
-def tail_log_file(file_path):
+def tail_log_file(file_path): # 实时读取日志文件
     with open(file_path, 'r') as f:
         # 移动到文件末尾
-        f.seek(0, 2)
+        f.seek(0, 2) 
         while True:
             line = f.readline()
             if not line:
                 time.sleep(0.1)  # 轮询间隔
                 continue
-            yield line.strip()
+            yield line.strip() # 返回新行
 
 # 主函数
 if __name__ == '__main__':
     tracker = LoginTracker()
     print("Starting log monitoring...")
-    for line in tail_log_file(LOG_FILE):
-        tracker.process_log_line(line)
+    for line in tail_log_file(LOG_FILE): # 处理每一行日志
+        tracker.process_log_line(line) # 解析日志行并更新登录状态
